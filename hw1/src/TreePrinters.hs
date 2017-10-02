@@ -2,17 +2,17 @@
 {-# LANGUAGE ViewPatterns  #-}
 
 module TreePrinters
-       ( Tree (..)
-       , directoryPrint
+       ( directoryPrint
        , verticalPrint
        ) where
 
 import           Data.Char (isSpace)
 import           Data.List (maximum)
+import           Lib       (Tree (..))
 
-data Tree a = Leaf | Node a (Tree a) (Tree a)
-    deriving (Functor, Show)
-
+-- data Tree a = Leaf | Node a (Tree a) (Tree a)
+--     deriving (Functor, Show)
+--
 -- | Prints tree like directories inside terminal.
 -- Couple examples are given below.
 --

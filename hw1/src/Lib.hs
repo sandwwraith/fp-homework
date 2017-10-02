@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveFunctor #-}
+
 module Lib where
 
 import           Data.Foldable   (Foldable (..))
@@ -6,7 +8,6 @@ import           Data.Monoid     (Monoid)
 import           Data.Semigroup  (Semigroup (..))
 import           Numeric.Natural (Natural)
 import           System.Random   (newStdGen, randomRs)
-import           TreePrinters    (Tree (..))
 
 randomIntList :: Int -> Int -> Int -> IO [Int]
 randomIntList n from to = take n . randomRs (from, to) <$> newStdGen
@@ -22,8 +23,8 @@ highestBit = fst . highestBitHard
 
 highestBitHard :: Natural -> (Int, Int)
 highestBitHard x =
-  let exp = floor $ logBase 2.0 (fromIntegral x)
-  in (2 ^ exp, exp)
+  let mexp = floor $ logBase (2.0 :: Double) (fromIntegral x)
+  in (2 ^ mexp, mexp)
 
 smartReplicate :: [Int] -> [Int]
 smartReplicate = concatMap (\x -> replicate x x)
@@ -36,13 +37,13 @@ removeAt :: Int -> [a] -> [a]
 removeAt idx xs = snd $ removeAtHard idx xs
 
 removeAtHard :: Int -> [a] -> (Maybe a, [a])
-removeAtHard idx xs = wrap $ splitAt idx xs
+removeAtHard idx li = wrap $ splitAt idx li
   where
     wrap (xs, [])   = (Nothing, xs)
     wrap (xs, y:ys) = (Just y, xs ++ ys)
 
 collectEvery :: Int -> [a] -> ([a], [a])
-collectEvery n xs = wrap $ splitAt (n - 1) xs
+collectEvery n li = wrap $ splitAt (n - 1) li
   where
     wrap (xs, []) = (xs, [])
     wrap (xs, y:ys) =
@@ -64,8 +65,8 @@ stringSumHard str = sum (map mread (words str))
 mergeSort :: Ord a => [a] -> [a]
 mergeSort [] = []
 mergeSort [x] = [x]
-mergeSort xs =
-  let (a, b) = splitAt (length xs `div` 2) xs
+mergeSort li =
+  let (a, b) = splitAt (length li `div` 2) li
   in merge (mergeSort a) (mergeSort b)
   where
     merge xs [] = xs
@@ -116,14 +117,14 @@ data Knight = Knight
 
 -- Returns (Knight wins, number of rounds)
 battle :: Knight -> Monster -> (Bool, Int)
-battle k m = round k m 0
+battle k m = go k m 0
   where
-    round :: Knight -> Monster -> Int -> (Bool, Int)
-    round (Knight _ 0) _ acc = (False, acc)
-    round _ (Monster _ 0) acc = (True, acc)
-    round (Knight ka kh) (Monster ma mh) acc
-      | even acc = round (Knight ka kh) (Monster ma (max (mh - ka) 0)) $ acc + 1
-      | otherwise = round (Knight ka (max (kh - ma) 0)) (Monster ma mh) $ acc + 1
+    go :: Knight -> Monster -> Int -> (Bool, Int)
+    go (Knight _ 0) _ acc = (False, acc)
+    go _ (Monster _ 0) acc = (True, acc)
+    go (Knight ka kh) (Monster ma mh) acc
+      | even acc = go (Knight ka kh) (Monster ma (max (mh - ka) 0)) $ acc + 1
+      | otherwise = go (Knight ka (max (kh - ma) 0)) (Monster ma mh) $ acc + 1
 
 class Fightable a where
   attack :: a -> Int
@@ -141,13 +142,13 @@ instance Fightable Knight where
   isDead (Knight _ hp) = hp == 0
 
 battleHard :: (Fightable a, Fightable b) => a -> b -> (Bool, Int)
-battleHard m1 m2 = round m1 m2 0
+battleHard a1 a2 = go a1 a2 0
   where
-    round m1 m2 acc
+    go m1 m2 acc
       | isDead m1 = (False, acc)
       | isDead m2 = (True, acc)
-      | even acc = round m1 (receiveDmg m2 (attack m1)) $ acc + 1
-      | otherwise = round (receiveDmg m1 (attack m2)) m2 $ acc + 1
+      | even acc = go m1 (receiveDmg m2 (attack m1)) $ acc + 1
+      | otherwise = go (receiveDmg m1 (attack m2)) m2 $ acc + 1
 
 data Vector a
   = Vector2D a
@@ -166,13 +167,14 @@ negateVec (Vector2D x y)   = Vector2D (-x) (-y)
 negateVec (Vector3D x y z) = Vector3D (-x) (-y) (-z)
 
 len :: Floating a => Vector a -> a
-len vec = sqrt $ sum $ map (^ 2) (vToList vec)
+len vec = sqrt $ sum $ map (^ (2 :: Int)) (vToList vec)
 
 sumVec :: Floating a => Vector a -> Vector a -> Vector a
 sumVec (Vector2D x y) (Vector2D x1 y1) = Vector2D (x + x1) (y + y1)
 sumVec vec1 vec2 = fromList3 $ zipWith (+) (vToList vec1) (vToList vec2)
   where
     fromList3 (x:y:z:_) = Vector3D x y z
+    fromList3 _         = undefined
 
 dotMul :: Floating a => Vector a -> Vector a -> a
 dotMul vec1 vec2 = sqrt $ sum $ zipWith (*) (vToList vec1) (vToList vec2)
@@ -185,6 +187,7 @@ crossMul vec1 vec2 = mulList (vToList vec1) (vToList vec2)
   where
     mulList (x1:y1:z1:_) (x2:y2:z2:_) =
       Vector3D (y1 * z2 - z1 * y2) (z1 * x2 - x1 * z2) (x1 * y2 - y1 * x2)
+    mulList _ _ = undefined
 
 data Nat
   = Z
@@ -204,6 +207,7 @@ instance Num Nat where
   fromInteger x = S (fromInteger (x - 1))
   n - Z = n
   (S n) - (S m) = n - m
+  Z - _ = 0
   abs = id
   signum Z = 0
   signum _ = 1
@@ -219,8 +223,13 @@ instance Ord Nat where
   (S _) <= Z = False
 
 -- Block 3
--- defined in TreePrinters
--- data Tree a = Leaf | Node a (Tree a) (Tree a)
+data Tree a
+  = Leaf
+  | Node a
+         (Tree a)
+         (Tree a)
+  deriving (Functor, Show)
+
 isEmpty :: Tree a -> Bool
 isEmpty Leaf = True
 isEmpty _    = False
@@ -234,14 +243,14 @@ findTree Leaf _ = Nothing
 findTree node@(Node x left right) i
   | x == i = Just node
   | i < x = findTree left i
-  | i > x = findTree right i
+  | otherwise = findTree right i
 
 insert :: (Ord a) => Tree a -> a -> Tree a
 insert Leaf i = Node i Leaf Leaf
 insert node@(Node x left right) i
   | x == i = node
   | i < x = Node x (insert left i) right
-  | i > x = Node x left (insert right i)
+  | otherwise = Node x left (insert right i)
 
 fromList :: (Ord a) => [a] -> Tree a
 fromList [] = Leaf
@@ -260,9 +269,10 @@ splitOn x = foldr f [[]]
     f item (y:ys)
       | item == x = [] : y : ys
       | otherwise = (item : y) : ys
+    f _ [] = undefined
 
 joinWith :: Eq a => a -> [[a]] -> [a]
-joinWith _ [[]] = []
+joinWith _ [] = []
 joinWith _ [x] = x
 joinWith i (x:xs) = foldl' f x xs
   where

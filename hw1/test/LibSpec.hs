@@ -6,7 +6,6 @@ import           Data.Monoid    (Sum (..))
 import           Data.Semigroup (Semigroup (..))
 import           Lib
 import           Test.Hspec
-import           TreePrinters   (Tree (..), directoryPrint, verticalPrint)
 
 spec :: Spec
 spec = do
