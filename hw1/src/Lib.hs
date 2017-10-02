@@ -127,7 +127,7 @@ battleHard m1 m2 = round m1 m2 0
         | even acc = round m1 (receiveDmg m2 (attack m1)) $ acc + 1
         | otherwise = round (receiveDmg m1 (attack m2)) m2 $ acc + 1
 
-data Vector a = Vector2D a a | Vector3D a a a deriving Show
+data Vector a = Vector2D a a | Vector3D a a a deriving (Show, Eq)
 
 vToList :: Floating a => Vector a -> [a]
 vToList (Vector2D x y)   = [x, y, 0]
@@ -161,7 +161,7 @@ data Nat = Z | S Nat deriving Show
 
 natToInteger :: Nat -> Int
 natToInteger Z     = 0
-natToInteger (S n) = 1 + natToInteger(n)
+natToInteger (S n) = 1 + natToInteger n
 
 instance Num Nat where
     n + Z = n
@@ -228,7 +228,7 @@ instance Foldable Tree where
 
 
 splitOn :: Eq a => a -> [a] -> [[a]]
-splitOn x xs = foldr f [[]] xs
+splitOn x = foldr f [[]]
     where
       f item (y:ys)
         | item == x = []:y:ys
@@ -237,20 +237,20 @@ splitOn x xs = foldr f [[]] xs
 joinWith :: Eq a => a -> [[a]] -> [a]
 joinWith _ [[]] = []
 joinWith _ [x] = x
-joinWith i (x:xs) = foldl' f x (xs)
+joinWith i (x:xs) = foldl' f x xs
     where
       f item acc = item ++ [i] ++ acc
 
 -- Block 5
 
 maybeConcat :: [Maybe ([a])] -> [a]
-maybeConcat xs = foldr f [] xs
+maybeConcat = foldr f []
     where
       f Nothing acc   = acc
       f (Just li) acc = li ++ acc
 
 eitherConcat :: (Monoid l, Monoid r) => [Either l r] -> (l,r)
-eitherConcat xs = foldr f (mempty, mempty) xs
+eitherConcat = foldr f (mempty, mempty)
     where
       f (Left l)  (ls, rs) = (l `mappend` ls, rs)
       f (Right r) (ls, rs) = (ls, r `mappend` rs)
@@ -269,7 +269,7 @@ instance Monoid t => Monoid (Identity t) where
     mempty = mempty
     mappend (Identity a) (Identity b) = Identity (a `mappend` b)
 
-newtype Name = Name String deriving Show
+newtype Name = Name String deriving (Show, Eq)
 
 instance Semigroup Name where
     (Name a) <> (Name b) = Name $ a ++ "." ++ b
