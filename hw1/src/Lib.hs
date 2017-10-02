@@ -51,13 +51,13 @@ collectEvery n li = wrap $ splitAt (n - 1) li
       in (xs ++ a, y : b)
 
 stringSum :: String -> Int
-stringSum str = sum (map read (words str))
+stringSum = sum . map read . words
 
 stringSumHard :: String -> Int
 stringSumHard str = sum (map mread (words str))
   where
     mread ('+':s) =
-      if (head s `elem` ['0' .. '9'])
+      if head s `elem` ['0' .. '9']
         then read s
         else error "Invalid number"
     mread s = read s
@@ -236,7 +236,7 @@ isEmpty _    = False
 
 size :: Tree a -> Int
 size Leaf                = 0
-size (Node _ left right) = (size left) + (size right) + 1
+size (Node _ left right) = size left + size right + 1
 
 findTree :: (Ord a) => Tree a -> a -> Maybe (Tree a)
 findTree Leaf _ = Nothing
@@ -279,7 +279,7 @@ joinWith i (x:xs) = foldl' f x xs
     f item acc = item ++ [i] ++ acc
 
 -- Block 5
-maybeConcat :: [Maybe ([a])] -> [a]
+maybeConcat :: [Maybe [a]] -> [a]
 maybeConcat = foldr f []
   where
     f Nothing acc   = acc
@@ -313,7 +313,7 @@ newtype Name =
   deriving (Show, Eq)
 
 instance Semigroup Name where
-  (Name a) <> (Name b) = Name $ a ++ "." ++ b
+  (<>) = mappend
 
 instance Monoid Name where
   mempty = Name ""
@@ -338,17 +338,17 @@ newtype Arrow a b = Arrow
   }
 
 instance Semigroup b => Semigroup (Arrow a b) where
-  (Arrow f1) <> (Arrow f2) = Arrow (\a -> (f1 a) <> (f2 a))
+  (Arrow f1) <> (Arrow f2) = Arrow (\a -> f1 a <> f2 a)
 
 instance Monoid b => Monoid (Arrow a b) where
-  mempty = Arrow (\_ -> mempty)
-  mappend (Arrow a) (Arrow b) = Arrow (\x -> (a x) `mappend` (b x))
+  mempty = Arrow (const mempty)
+  mappend (Arrow a) (Arrow b) = Arrow (\x -> a x `mappend` b x)
 
 instance Ord a => Semigroup (Tree a) where
   node <> Leaf = node
-  node <> (Node y ly ry) = (insert node y) <> ly <> ry
+  node <> (Node y ly ry) = insert node y <> ly <> ry
 
 instance Ord a => Monoid (Tree a) where
   mempty = Leaf
   node `mappend` Leaf = node
-  node `mappend` (Node y ly ry) = ((insert node y) `mappend` ly) `mappend` ry
+  node `mappend` (Node y ly ry) = (insert node y `mappend` ly) `mappend` ry
