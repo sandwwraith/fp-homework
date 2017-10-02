@@ -45,6 +45,12 @@ spec = do
         stringSum "1 1" `shouldBe` 2
         stringSum "100\n\t-3" `shouldBe` 97
 
+    it "stringSumHard" $ do
+        stringSumHard "1 1" `shouldBe` 2
+        stringSumHard "100\n\t-3" `shouldBe` 97
+        stringSumHard "-1 +1" `shouldBe` 0
+        -- stringSumHard "+-1" `shouldThrow` anyErrorCall -- needs IO :(
+
     it "mergeSort" $ do
         mergeSort [2, 1, 0, 3, 10, 5] `shouldBe` [0, 1, 2, 3, 5, 10]
 

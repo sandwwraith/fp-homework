@@ -1,11 +1,12 @@
 module Lib where
 
-import           Data.Foldable  (Foldable (..))
-import           Data.List      (sort, splitAt)
-import           Data.Monoid    (Sum (..))
-import           Data.Semigroup (Semigroup (..))
-import           System.Random  (newStdGen, randomRs)
-import           TreePrinters   (Tree (..), directoryPrint, verticalPrint)
+import           Data.Foldable   (Foldable (..))
+import           Data.List       (sort, splitAt)
+import           Data.Monoid     (Monoid)
+import           Data.Semigroup  (Semigroup (..))
+import           Numeric.Natural (Natural)
+import           System.Random   (newStdGen, randomRs)
+import           TreePrinters    (Tree (..))
 
 randomIntList :: Int -> Int -> Int -> IO [Int]
 randomIntList n from to = take n . randomRs (from, to) <$> newStdGen
@@ -16,10 +17,10 @@ order3 (a, b, c) =
   let [x, y, z] = sort [a, b, c]
   in (x, y, z)
 
-highestBit :: Int -> Int
+highestBit :: Natural -> Int
 highestBit = fst . highestBitHard
 
-highestBitHard :: Int -> (Int, Int)
+highestBitHard :: Natural -> (Int, Int)
 highestBitHard x =
   let exp = floor $ logBase 2.0 (fromIntegral x)
   in (2 ^ exp, exp)
@@ -50,6 +51,15 @@ collectEvery n xs = wrap $ splitAt (n - 1) xs
 
 stringSum :: String -> Int
 stringSum str = sum (map read (words str))
+
+stringSumHard :: String -> Int
+stringSumHard str = sum (map mread (words str))
+  where
+    mread ('+':s) =
+      if (head s `elem` ['0' .. '9'])
+        then read s
+        else error "Invalid number"
+    mread s = read s
 
 mergeSort :: Ord a => [a] -> [a]
 mergeSort [] = []
@@ -109,8 +119,8 @@ battle :: Knight -> Monster -> (Bool, Int)
 battle k m = round k m 0
   where
     round :: Knight -> Monster -> Int -> (Bool, Int)
-    round (Knight ka 0) _ acc = (False, acc)
-    round _ (Monster ma 0) acc = (True, acc)
+    round (Knight _ 0) _ acc = (False, acc)
+    round _ (Monster _ 0) acc = (True, acc)
     round (Knight ka kh) (Monster ma mh) acc
       | even acc = round (Knight ka kh) (Monster ma (max (mh - ka) 0)) $ acc + 1
       | otherwise = round (Knight ka (max (kh - ma) 0)) (Monster ma mh) $ acc + 1
@@ -194,6 +204,9 @@ instance Num Nat where
   fromInteger x = S (fromInteger (x - 1))
   n - Z = n
   (S n) - (S m) = n - m
+  abs = id
+  signum Z = 0
+  signum _ = 1
 
 instance Eq Nat where
   Z == Z = True
@@ -238,7 +251,7 @@ fromList xs = foldl' insert Leaf xs
 instance Foldable Tree where
   foldMap _ Leaf         = mempty
   foldMap f (Node x l r) = foldMap f l `mappend` f x `mappend` foldMap f r
-  foldr f acc Leaf         = acc
+  foldr _ acc Leaf         = acc
   foldr f acc (Node x l r) = foldr f (f x (foldr f acc r)) l
 
 splitOn :: Eq a => a -> [a] -> [[a]]
