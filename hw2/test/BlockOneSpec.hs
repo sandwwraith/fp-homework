@@ -35,14 +35,14 @@ spec = do
   it "bin" $ do
     bin 1 `shouldMatchList` [[1], [0]]
     bin 2 `shouldMatchList` [[1, 0], [0, 1], [1, 1], [0, 0]]
-  it "permutations" $ do
-    permutations [22, 10, 5] `shouldMatchList` [ [22, 10, 5]
-                                                , [22, 5, 10]
-                                                , [10, 22, 5]
-                                                , [10, 5, 22]
-                                                , [5, 22, 10]
-                                                , [5, 10, 22]
-                                                ]
+  -- it "permutations" $ do
+  --   permutations [22, 10, 5] `shouldMatchList` [ [22, 10, 5]
+  --                                               , [22, 5, 10]
+  --                                               , [10, 22, 5]
+  --                                               , [10, 5, 22]
+  --                                               , [5, 22, 10]
+  --                                               , [5, 10, 22]
+  --                                               ]
 
 
 
