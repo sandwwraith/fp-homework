@@ -3,7 +3,9 @@
 
 module BlockOne where
 
-import           Data.Maybe (fromMaybe)
+import qualified Control.Category (Category (id, (.)))
+import           Control.Monad    ((>=>))
+import           Data.Maybe       (fromMaybe)
 
 someFunc :: String
 someFunc = "someFunc"
@@ -74,6 +76,49 @@ isDefinedAt f a =
 
 orElse :: (a ~> b) -> (a ~> b) -> a ~> b
 orElse f1 f2 = Partial (\x -> (apply f1 x) >-> (apply f2 x))
+
+instance Control.Category.Category (~>) where
+  id = total Prelude.id
+  f . g = Partial (apply g >=> apply f)
+
+  {- 1. (.) f id === f
+        Partial (apply id >=> apply f) === f                 (definition of .)
+        Partial (apply (total Prelude.id) >=> apply f) === f (definition of id)
+        Partial (\x -> apply (total Prelude.id) x >>= apply f) === f         (definition of >=>)
+        Partial (\x -> Just x >>= apply f) === f             (applying total function)
+        Partial (\x -> apply f x) === f                      (bind instance for Maybe)
+        apply (Partial (\x -> apply f x)) === apply f
+        \x -> apply f x === apply f                          (definition of apply for Partial)
+        apply f === apply f                                  (eta-reduction)
+
+     2. (.) id f === f
+        Partial (apply f >=> apply id) === f                        (definition of .)
+        Partial (apply f >=> apply (total Prelude.id)) === f        (definition of id)
+        Partial (\x -> apply f x >>= apply (total Prelude.id)) === f  (definition of >=>)
+        Partial (\x -> apply f x >>= Just) === f                    (applying total function)
+        Partial (\x -> apply f x) === f                             (Just is return, m >>= return  =  m)
+        apply $ Partial (\x -> apply f x) === apply f
+        \x -> apply f x === apply f                                 (definition of apply for Partial)
+        apply f === apply f                                         (eta-reduction)
+
+     3. (f . g) . h === f . (g . h)
+        Left part:
+        Partial (apply h >=> apply (Partial (apply g >=> apply f)))
+        Partial (\x -> apply h x >>= apply (Partial (apply g >=> apply f))) (definition of >=>)
+        Partial (\x -> apply h x >>= (apply g >=> apply f))                 (applying Partial)
+        Partial (\x -> apply h x >>= (\y -> apply g y >>= apply f))         (definition of >=>)
+        Partial (\x -> (apply h x >>= apply g) >>= apply f)                 (Monad law: m >>= (\x -> k x >>= h)  =  (m >>= k) >>= h)
+
+        Right part:
+        Partial (apply (Partial (apply h >=> apply g)) >=> apply f)
+        Partial ((apply h >=> apply g) >=> apply f)
+        Partial ((\y -> apply h y >>= apply g) >=> apply f)
+        Partial (\x -> (\y -> apply h y >>= apply g) x >>= apply f)
+        Partial (\x -> apply h x >>= apply g >>= apply f)
+
+        Partial (\x -> (apply h x >>= apply g) >>= apply f) === Partial (\x -> apply h x >>= apply g >>= apply f)
+  -}
+
 
 bin :: Int -> [[Int]]
 bin 0 = [[]]
