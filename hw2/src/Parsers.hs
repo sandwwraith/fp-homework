@@ -4,7 +4,7 @@ import           Control.Applicative (Alternative (..))
 import           Control.Monad       (void, (>=>))
 import           Data.Char           (isAlpha, isAlphaNum, isDigit, isSpace,
                                       isUpper)
-import           Data.List           (foldl')
+import           Data.List           (foldl', intercalate)
 import qualified Data.Map.Strict     as Map
 
 newtype Parser a
@@ -101,7 +101,16 @@ instance Monad Parser where
 letParser :: Parser String
 letParser = ident >>= \i -> if (i == "let") then return i else empty
 
-data LExpr = LExpr Ident [Atom] deriving Show
+data LExpr = LExpr Ident [Atom]
+
+instance Show LExpr where
+  show (LExpr name atomz) = "let " ++ name ++ " = " ++ toString atomz ++ "\n"
+    where
+      toString :: [Atom] -> String
+      toString atoms = intercalate " + " (map showAtom atoms)
+        where
+          showAtom (N i) = show i
+          showAtom (I n) = n
 
 exprParser :: Parser LExpr
 exprParser = LExpr <$> (letParser *> spaces *> ident) <* spaces <* charP '=' <* spaces <*> linearParser
@@ -135,3 +144,5 @@ optimize li = fst $ foldl' go ([], Map.empty) li
             value (N a) b = a + b
             value (I n) b = (mmap Map.! n) + b
 
+optimizeS :: String -> Maybe String
+optimizeS s = show <$> ((runParser letExprParser s) >>= (\(x, _) -> return $ optimize x))

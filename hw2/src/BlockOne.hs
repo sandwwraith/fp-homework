@@ -32,6 +32,7 @@ eval :: Expr -> Either ArithmeticError Int
 eval (Const a) = Right a
 eval expr = eval (op1 expr) >>= \x -> eval (op2 expr) >>= \y -> (binOp expr x y)
   where
+    binOp (Const a) _ _ = Right a
     binOp (Add _ _) x y = Right $ x + y
     binOp (Sub _ _) x y = Right $ x - y
     binOp (Mul _ _) x y = Right $ x * y
@@ -121,13 +122,25 @@ instance Control.Category.Category (~>) where
 
 
 bin :: Int -> [[Int]]
-bin 0 = [[]]
-bin x = bin (x - 1) >>= \li -> [0 : li, 1 : li]
+bin x
+ | x < 0 = error "Illegal argument"
+ | x == 0 = [[]]
+ | otherwise = bin (x - 1) >>= \li -> [0 : li, 1 : li]
 
 combinations :: Int -> Int -> [[Int]]
-combinations = undefined
+combinations n k
+  | n < 1 || k > n || k < 1 = error "Illegal argument"
+  | otherwise = go k [1..n]
+  where
+    go :: Int -> [Int] -> [[Int]]
+    go 0 _       = [[]]
+    go _ []      = []
+    go k_ (x:xs) = (go (k_ - 1) xs >>= \li -> [x:li]) ++ go k_ xs
 
 permutations :: [a] -> [[a]]
 permutations []  = [[]]
 permutations [a] = [[a]]
-permutations _   = undefined
+permutations (y:ys) = permutations ys >>= \li -> insertEvery y li
+  where
+    insertEvery x []        = [[x]]
+    insertEvery x li@(l:ls) = (x:li):(insertEvery x ls >>= \ll -> [l:ll])
