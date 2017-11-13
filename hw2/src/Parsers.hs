@@ -113,10 +113,12 @@ instance Show LExpr where
           showAtom (I n) = n
 
 exprParser :: Parser LExpr
-exprParser = LExpr <$> (letParser *> spaces *> ident) <* spaces <* charP '=' <* spaces <*> linearParser
+exprParser = LExpr <$> (letParser *> spaces *> ident)
+  <* spaces <* charP '=' <* spaces <*> linearParser
 
 linearParser :: Parser [Atom]
-linearParser = (:) <$> atomParser <*> zeroOrMore (spaces *> charP '+' *> spaces *> atomParser <* spaces)
+linearParser = (:) <$> atomParser <*>
+  zeroOrMore (spaces *> charP '+' *> spaces *> atomParser <* spaces)
 
 letExprParser :: Parser [LExpr]
 letExprParser = oneOrMore (exprParser <* (spaces <|> ((:[]) <$> (charP '\n'))))
@@ -138,11 +140,15 @@ optimize li = fst $ foldl' go ([], Map.empty) li
     go (xs, oldmap) x = let (newx, newmap) = runOptimize oldmap x in (xs ++ [newx], newmap)
       where
         runOptimize :: MMap -> LExpr -> (LExpr, MMap)
-        runOptimize mmap (LExpr name atoms) = let sk = foldr value 0 atoms in (LExpr name [N sk], Map.insert name sk mmap)
+        runOptimize mmap (LExpr name atoms) = let sk = foldr value 0 atoms in
+          (LExpr name [N sk], Map.insert name sk mmap)
           where
             value :: Atom -> Integer -> Integer
             value (N a) b = a + b
             value (I n) b = (mmap Map.! n) + b
 
+optimizeParser :: Parser [LExpr]
+optimizeParser = optimize <$> letExprParser
+
 optimizeS :: String -> Maybe String
-optimizeS s = show <$> ((runParser letExprParser s) >>= (\(x, _) -> return $ optimize x))
+optimizeS s = show . fst <$> runParser optimizeParser s

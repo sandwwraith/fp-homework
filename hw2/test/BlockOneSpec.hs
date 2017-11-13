@@ -12,6 +12,7 @@ spec = do
   it "expression" $ do
     eval (Const 4) `shouldBe` Right 4
     eval (Add (Const 2) (Const 2)) `shouldBe` Right 4
+    eval (Pow (Const 0) (Const 0)) `shouldBe` Left ZeroPowered
   it "partial" $ do
     let f = Partial (\x -> if even x then Just x else Nothing)
     isDefinedAt f 3 `shouldBe` False

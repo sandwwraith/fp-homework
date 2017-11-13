@@ -40,4 +40,6 @@ spec = do
     runParser ident "foo33fA" `shouldBe` Just ("foo33fA","")
     runParser ident "2bad" `shouldBe` Nothing
     runParser ident "" `shouldBe` Nothing
+  it "letparser" $ do
+    optimizeS test `shouldBe` Just "[let x = 8\n,let y = 16\n,let z = 32\n]"
 
