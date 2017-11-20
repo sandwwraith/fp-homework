@@ -23,9 +23,9 @@ instance Monad m => MonadJoin m where
   join x = x >>= id
     {- PROOF: join . returnJoin      ≡ id
        join . returnJoin === id
-       returnJoin (join x) === id x    (definition of (.))
-       returnJoin (x >>= id) === id x  (definition of join)
-       return (x >>= id) === id x      (definition of returnJoin)
+       join (returnJoin x) === id x    (definition of (.))
+       join (return x) === id x  (definition of join)
+       return x >>= id === id x      (definition of returnJoin)
        id x === id x                   (Monad law 2)
     -}
 

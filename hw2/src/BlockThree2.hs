@@ -13,12 +13,10 @@ instance MonadFish m => MonadJoin m where
   join x = (id >=> id) x
 
     {- PROOF: join . returnJoin === id
-       returnJoin (join x) === id x
-       returnFish (join x) === id x
-       returnFish ((id >=> id) x) === id x
+       join (returnJoin x) === id x
+       join (returnFish x) === id x
+       (id >=> id) (returnFish x) === id x
 
-       join . returnFish === id >=> returnFish
-       (id >=> id) . returnFish
     -}
 
 instance (Functor m, MonadJoin m) => Monad m where
@@ -35,7 +33,7 @@ instance (Functor m, MonadJoin m) => MonadFish m where
   returnFish = returnJoin
   (>=>) f g = \x -> join (fmap g (f x))
     {- PROOF: f >=> returnFish === f
-       \x-> join (fmap returnFish (f x)) === f
+       \x -> join (fmap returnFish (f x)) === f
        join (fmap returnFish (f x)) === f x    (apply lambda)
        join (fmap returnJoin (f x)) === f x    (returnFish definition)
        (join . fmap returnJoin) (f x) === f x
