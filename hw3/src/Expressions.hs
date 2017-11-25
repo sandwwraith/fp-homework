@@ -1,12 +1,9 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
-module Part1 where
+module Expressions where
 
 import           Control.Monad.Reader (ReaderT, asks, lift, liftM2, local)
 import qualified Data.Map.Strict      as Map
-
-someFunc :: String
-someFunc = "someFunc"
 
 data Expr
     = Var String

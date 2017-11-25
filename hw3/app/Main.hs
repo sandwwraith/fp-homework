@@ -1,6 +1,9 @@
 module Main where
 
-import           Part1
+import           Parser (test)
+
+someFunc :: String
+someFunc = "someFunc"
 
 main :: IO ()
-main = putStrLn someFunc
+main = print test

@@ -1,16 +1,14 @@
-module Part1Spec where
+module ExpressionsSpec where
 
 import           Control.Monad.Reader (runReaderT)
 import qualified Data.Map.Strict      as Map
-import           Part1
+import           Expressions
 import           Test.Hspec
 
 
 
 spec :: Spec
 spec = do
-    it "sanity" $ do
-        someFunc `shouldBe` "someFunc"
     let map1 = Map.singleton "x" 1
     let map0 = Map.empty
     it "literal" $ do
