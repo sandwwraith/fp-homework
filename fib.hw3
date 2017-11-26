@@ -1,0 +1,10 @@
+> n
+mut x0 = 1
+mut x1 = 1
+mut r = 1
+for (2 to n) {
+    r = x0 + x1
+    x0 = x1
+    x1 = r
+}
+< r

@@ -33,7 +33,10 @@ instance Show ParsingException where
 instance Exception ParsingException
 
 space1 :: Parser ()
-space1 = skipSome (char (BS.c2w ' '))
+space1 = skipSome (char (BS.c2w ' ') <|> char (BS.c2w '\t'))
+
+indent :: Parser ()
+indent = skipMany (char (BS.c2w ' ') <|> char (BS.c2w '\t'))
 
 sc :: Parser ()
 sc = L.space space1 empty empty
@@ -60,8 +63,8 @@ identifier = (lexeme . try) (p >>= check)
     check x = if x `elem` rws
                 then fail $ "keyword " ++ show x ++ " cannot be an identifier"
                 else return x
-    rws :: [Str] -- list of reserved words
-    rws = ["let", "in", "mut"]
+    rws :: [Str] -- list of hard keywords
+    rws = ["let", "mut", "for"]
 
 
 termParser :: Parser Expr
@@ -87,10 +90,21 @@ exprParser = makeExprParser termParser operators
         ]
 
 stmtParser :: Parser Statement
-stmtParser = Def <$> (rword "mut" *> (S8.toString <$> identifier) <* symbol "=") <*> exprParser
-          <|> Assgmnt <$> ((S8.toString <$> identifier) <* symbol "=") <*> exprParser
+stmtParser = indent *> (
+          Def <$> (rword "mut" *> (S8.toString <$> identifier) <* symbol "=") <*> exprParser
           <|> PrintVal <$> (symbol "<" *> exprParser)
           <|> ReadVal <$> (symbol ">" *> (S8.toString <$> identifier))
+          <|> do
+                _ <- rword "for" *> symbol "("
+                ini <- exprParser
+                _ <- rword "to"
+                bnd <- exprParser
+                _ <- symbol ")" *> symbol "{" *> eol
+                inner <- programParser
+                _ <- symbol "}"
+                return $ ForLoop ini bnd inner
+          <|> Assgmnt <$> ((S8.toString <$> identifier) <* symbol "=") <*> exprParser
+        )
 
 programParser :: Parser [Statement]
 programParser = sc *> many (stmtParser <* eol)

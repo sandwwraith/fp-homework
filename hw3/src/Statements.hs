@@ -6,7 +6,7 @@ module Statements where
 
 import           Expressions         (Expr (..), ExprMap, doEval)
 
-import           Control.Monad       (void)
+import           Control.Monad       (replicateM_, void)
 import           Control.Monad.Catch (Exception, MonadThrow, throwM)
 import           Control.Monad.State (MonadIO, MonadState, StateT, get, liftIO,
                                       modify, put, runStateT)
@@ -46,20 +46,30 @@ data Statement
               , expression :: Expr }
     | PrintVal { expression :: Expr }
     | ReadVal { varName :: String }
+    | ForLoop { expression :: Expr
+              , bound      :: Expr
+              , body       :: [Statement] }
     deriving (Eq, Show)
 
-compute :: (MonadState ExprMap m, MonadThrow m, MonadIO m) => [Statement] -> m ExprMap
+compute ::
+       (MonadState ExprMap m, MonadThrow m, MonadIO m)
+    => [Statement]
+    -> m ExprMap
 compute [] = get
 compute (x:xs) = do
     vars <- get
-    c <- case x of
-        ReadVal _ -> read <$> liftIO getLine
-        _         -> doEval (expression x) vars
+    c <-
+        case x of
+            ReadVal _ -> read <$> liftIO getLine
+            _         -> doEval (expression x) vars
     case x of
         Def name _     -> def name c
         Assgmnt name _ -> update name c
         PrintVal _     -> liftIO $ print c
         ReadVal name   -> overwrite name c
+        ForLoop _ boundExpr stmts -> do
+            to <- doEval boundExpr vars
+            replicateM_ (to - c) (compute stmts)
     compute xs
 
 doCompute :: (MonadIO m, MonadThrow m) => [Statement] -> m ExprMap

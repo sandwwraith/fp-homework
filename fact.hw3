@@ -1,0 +1,8 @@
+> n
+mut r = 1
+mut c = 1
+for (1 to n) {
+    c = c + 1
+    r = r * c
+}
+< r
