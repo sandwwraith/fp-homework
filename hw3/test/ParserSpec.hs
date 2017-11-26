@@ -30,4 +30,4 @@ spec = do
             "x = x * 5"
             ]
     it "sample program" $ do
-        runProgram testMut `shouldReturn` Map.singleton "x" 35
+        runProgram "sample" testMut `shouldReturn` Map.singleton "x" 35

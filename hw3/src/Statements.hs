@@ -66,4 +66,4 @@ doCompute :: (MonadIO m, MonadThrow m) => [Statement] -> m ExprMap
 doCompute stmt = fst <$> runStateT (compute stmt) Map.empty
 
 doCompute_ :: (MonadIO m, MonadThrow m) => [Statement] -> m ()
-doCompute_ stmt = void (runStateT (compute stmt) Map.empty)
+doCompute_ = void . doCompute

@@ -7,9 +7,10 @@ import           Statements                 (Statement (..), doCompute,
                                              doCompute_)
 
 import           Control.Applicative        (empty)
-import           Control.Monad.Catch        (MonadThrow, throwM)
+import           Control.Monad.Catch        (Exception, MonadThrow, throwM)
 import           Control.Monad.State        (MonadIO)
 import qualified Data.Map.Strict            as Map
+import           Data.Typeable              (Typeable)
 import           Data.Void                  (Void)
 
 import qualified Data.ByteString            as PackedStr
@@ -25,6 +26,11 @@ import           Text.Megaparsec.Expr
 type Str = S8.ByteString
 
 type Parser = Parsec Void Str
+
+data ParsingException = ParsingException (ParseError (Token Str) Void) deriving (Typeable)
+instance Show ParsingException where
+    show (ParsingException e) = parseErrorPretty e
+instance Exception ParsingException
 
 space1 :: Parser ()
 space1 = skipSome (char (BS.c2w ' '))
@@ -60,8 +66,8 @@ identifier = (lexeme . try) (p >>= check)
 
 termParser :: Parser Expr
 termParser = (Let <$> (symbol "(" *> rword "let" *> (S8.toString <$> identifier) <* symbol "=")
-            <*> (termParser <* symbol "in" ) <*> (termParser <* symbol ")"))
-    <|> parens termParser
+            <*> (exprParser <* symbol "in" ) <*> (exprParser <* symbol ")"))
+    <|> parens exprParser
     <|> Var <$> (S8.toString <$> identifier)
     <|> Lit <$> integer
 
@@ -90,13 +96,13 @@ programParser :: Parser [Statement]
 programParser = sc *> many (stmtParser <* eol)
 
 useParser :: (MonadThrow m) => Parser a -> String -> Str -> m a
-useParser p name input = either throwM return (parse p name input)
+useParser p name input = either (throwM . ParsingException) return (parse p name input)
 
 parseExprs :: (MonadThrow m) => Str -> m Expr
-parseExprs = useParser exprParser "Expr"
+parseExprs = useParser exprParser ""
 
 parseStmt :: (MonadThrow m) => Str -> m Statement
-parseStmt = useParser stmtParser "Statement"
+parseStmt = useParser stmtParser ""
 
 parseAndEval :: (MonadThrow m) => Str -> m Int
 parseAndEval input = parseExprs input >>= flip doEval Map.empty
@@ -104,8 +110,8 @@ parseAndEval input = parseExprs input >>= flip doEval Map.empty
 parseAndCompute :: (MonadIO m, MonadThrow m) => Str -> m ExprMap
 parseAndCompute input = parseStmt input >>= \stmt -> doCompute [stmt]
 
-runProgram :: (MonadIO m, MonadThrow m) => Str -> m ExprMap
-runProgram input = useParser programParser "Program" input >>= doCompute
+runProgram :: (MonadIO m, MonadThrow m) => String -> Str -> m ExprMap
+runProgram name input = useParser programParser name input >>= doCompute
 
-runProgram_ :: (MonadIO m, MonadThrow m) => Str -> m ()
-runProgram_ input = useParser programParser "Program" input >>= doCompute_
+runProgram_ :: (MonadIO m, MonadThrow m) => String -> Str -> m ()
+runProgram_ name input = useParser programParser name input >>= doCompute_

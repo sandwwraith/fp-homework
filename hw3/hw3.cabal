@@ -20,23 +20,24 @@ library
   hs-source-dirs:      src
   exposed-modules:     Expressions, Statements, Parser
   ghc-options:         -Wall
-  build-depends:       base >= 4.9 && < 5, containers, mtl, megaparsec >= 6.0, utf8-string, bytestring, exceptions
+  build-depends:       base >= 4.9 && < 5, 
+                       containers, mtl, megaparsec >= 6.0, 
+                       utf8-string, bytestring, exceptions
   default-language:    Haskell2010
 
 executable hw3
   hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base, utf8-string
-                     , hw3
+  build-depends:       base, hw3
+                     , utf8-string, bytestring
   default-language:    Haskell2010
 
 test-suite hw3-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
-  build-depends:       base
-                     , hw3
+  build-depends:       base, hw3
                      , hspec, containers, mtl, utf8-string
   ghc-options:         -Wall -Werror
   default-language:    Haskell2010
