@@ -3,12 +3,14 @@
 module Parser where
 
 import           Expressions                (Expr (..), ExprMap, doEval)
-import           Statements                 (Statement (..), doCompute)
+import           Statements                 (Statement (..), doCompute,
+                                             doCompute_)
 
 import           Control.Applicative        (empty)
 import           Control.Monad.Catch        (MonadThrow, throwM)
+import           Control.Monad.State        (MonadIO)
 import qualified Data.Map.Strict            as Map
-import           Data.Void
+import           Data.Void                  (Void)
 
 import qualified Data.ByteString            as PackedStr
 import qualified Data.ByteString.Internal   as BS (c2w)
@@ -81,6 +83,8 @@ exprParser = makeExprParser termParser operators
 stmtParser :: Parser Statement
 stmtParser = Def <$> (rword "mut" *> (S8.toString <$> identifier) <* symbol "=") <*> exprParser
           <|> Assgmnt <$> ((S8.toString <$> identifier) <* symbol "=") <*> exprParser
+          <|> PrintVal <$> (symbol "<" *> exprParser)
+          <|> ReadVal <$> (symbol ">" *> (S8.toString <$> identifier))
 
 programParser :: Parser [Statement]
 programParser = sc *> many (stmtParser <* eol)
@@ -97,8 +101,11 @@ parseStmt = useParser stmtParser "Statement"
 parseAndEval :: (MonadThrow m) => Str -> m Int
 parseAndEval input = parseExprs input >>= flip doEval Map.empty
 
-parseAndCompute :: (MonadThrow m) => Str -> m ExprMap
+parseAndCompute :: (MonadIO m, MonadThrow m) => Str -> m ExprMap
 parseAndCompute input = parseStmt input >>= \stmt -> doCompute [stmt]
 
-runProgram :: (MonadThrow m) => Str -> m ExprMap
+runProgram :: (MonadIO m, MonadThrow m) => Str -> m ExprMap
 runProgram input = useParser programParser "Program" input >>= doCompute
+
+runProgram_ :: (MonadIO m, MonadThrow m) => Str -> m ()
+runProgram_ input = useParser programParser "Program" input >>= doCompute_
