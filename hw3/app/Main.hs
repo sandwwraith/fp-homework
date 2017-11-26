@@ -1,9 +1,10 @@
 module Main where
 
-import           Parser (test)
+import           Data.ByteString.UTF8 (fromString)
+import           Parser               (parseAndEval)
 
 someFunc :: String
 someFunc = "someFunc"
 
 main :: IO ()
-main = print test
+main = (fromString <$> getLine) >>= parseAndEval >>= print

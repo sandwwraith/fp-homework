@@ -1,35 +1,42 @@
 module ExpressionsSpec where
 
-import           Control.Monad.Reader (runReaderT)
-import qualified Data.Map.Strict      as Map
 import           Expressions
+
+import qualified Data.Map.Strict as Map
 import           Test.Hspec
-
-
 
 spec :: Spec
 spec = do
     let map1 = Map.singleton "x" 1
     let map0 = Map.empty
     it "literal" $ do
-        runReaderT (eval (Lit 1)) map1 `shouldBe` Right 1
+        doEval (Lit 1) map1 `shouldReturn` 1
     it "variable" $ do
-        runReaderT (eval (Var "x")) map1 `shouldBe` Right 1
-        runReaderT (eval (Var "x")) map0 `shouldBe` Left (MissingVariable "x")
-        runReaderT (eval (Var "y")) map1 `shouldBe` Left (MissingVariable "y")
+        doEval (Var "x") map1 `shouldReturn` 1
+        doEval (Var "x") map0 `shouldThrow` (== MissingVariable "x")
+        doEval (Var "y") map1 `shouldThrow` (== MissingVariable "y")
     it "add" $ do
-        runReaderT (eval (Var "x" `Add` Lit 0)) map1 `shouldBe` Right 1
-        runReaderT (eval (Lit 2 `Add` Lit 2)) map0 `shouldBe` Right 4
+        doEval (Var "x" `Add` Lit 0) map1 `shouldReturn` 1
+        doEval (Lit 2 `Add` Lit 2) map0 `shouldReturn` 4
     it "div" $ do
-        runReaderT (eval (Var "x" `Div` Lit 0)) map1 `shouldBe` Left ZeroDivision
-        runReaderT (eval (Lit 5 `Div` Lit 2)) map0 `shouldBe` Right 2
+        doEval (Var "x" `Div` Lit 0) map1 `shouldThrow` (== ZeroDivision)
+        doEval (Lit 5 `Div` Lit 2) map0 `shouldReturn` 2
     it "let" $ do
-        runReaderT (eval ("x" `Let` (Lit 2) $ Var "x")) map0 `shouldBe` Right 2
-        runReaderT (eval ("y" `Let` (Lit 2) $ Var "x" `Add` Var "y")) map1 `shouldBe` Right 3
-        runReaderT (eval (Var "x" `Add` (Lit 3 `Mul` ("x" `Let` (Lit 2) $ Var "x")))) map1 `shouldBe` Right 7
-        runReaderT (eval (Var "y" `Add` (Lit 3 `Mul` ("x" `Let` (Lit 2) $ Var "x")))) map1 `shouldBe` Left (MissingVariable "y")
-        runReaderT (eval (Let ("y") (Lit 2 `Add` Lit 2) (Var "y" `Add` (Lit 3 `Mul` ("x" `Let` (Lit 2) $ Var "x"))))) map0 `shouldBe` Right 10
-        runReaderT (eval ((Let ("y") (Lit 2) (Var "y")) `Add` (Let ("x") (Lit 2) (Var "x" `Add` Var "y")))) map0 `shouldBe` Left (MissingVariable "y")
-
-
-
+        doEval ("x" `Let` (Lit 2) $ Var "x") map0 `shouldReturn` 2
+        doEval ("y" `Let` (Lit 2) $ Var "x" `Add` Var "y") map1 `shouldReturn` 3
+        doEval (Var "x" `Add` (Lit 3 `Mul` ("x" `Let` (Lit 2) $ Var "x"))) map1 `shouldReturn`
+            7
+        doEval (Var "y" `Add` (Lit 3 `Mul` ("x" `Let` (Lit 2) $ Var "x"))) map1 `shouldThrow`
+            (== MissingVariable "y")
+        doEval
+            (Let
+                 ("y")
+                 (Lit 2 `Add` Lit 2)
+                 (Var "y" `Add` (Lit 3 `Mul` ("x" `Let` (Lit 2) $ Var "x"))))
+            map0 `shouldReturn`
+            10
+        doEval
+            ((Let ("y") (Lit 2) (Var "y")) `Add`
+             (Let ("x") (Lit 2) (Var "x" `Add` Var "y")))
+            map0 `shouldThrow`
+            (== MissingVariable "y")

@@ -2,27 +2,30 @@
 
 module Parser where
 
-import           Expressions                (Expr (..), ExpressionError (..),
-                                             eval)
-import           Statements                 (Statement (..), VariableError (..))
+import           Expressions                (Expr (..), ExprMap, doEval)
+import           Statements                 (Statement (..), doCompute)
 
 import           Control.Applicative        (empty)
-import           Control.Monad.Reader       (runReaderT)
+import           Control.Monad.Catch        (MonadThrow, throwM)
+import qualified Data.Map.Strict            as Map
 import           Data.Void
 
 import qualified Data.ByteString            as PackedStr
+import qualified Data.ByteString.Internal   as BS (c2w)
 import qualified Data.ByteString.UTF8       as S8
-import qualified Data.Map.Strict            as Map
 
 import           Text.Megaparsec
-import           Text.Megaparsec.Byte       (alphaNumChar, letterChar, space1,
-                                             string)
+import           Text.Megaparsec.Byte       (alphaNumChar, char, eol,
+                                             letterChar, string)
 import qualified Text.Megaparsec.Byte.Lexer as L
 import           Text.Megaparsec.Expr
 
 type Str = S8.ByteString
 
 type Parser = Parsec Void Str
+
+space1 :: Parser ()
+space1 = skipSome (char (BS.c2w ' '))
 
 sc :: Parser ()
 sc = L.space space1 empty empty
@@ -42,7 +45,6 @@ integer = lexeme L.decimal
 rword :: Str -> Parser ()
 rword w = lexeme (string w *> notFollowedBy alphaNumChar)
 
-
 identifier :: Parser Str
 identifier = (lexeme . try) (p >>= check)
   where
@@ -52,6 +54,14 @@ identifier = (lexeme . try) (p >>= check)
                 else return x
     rws :: [Str] -- list of reserved words
     rws = ["let", "in", "mut"]
+
+
+termParser :: Parser Expr
+termParser = (Let <$> (symbol "(" *> rword "let" *> (S8.toString <$> identifier) <* symbol "=")
+            <*> (termParser <* symbol "in" ) <*> (termParser <* symbol ")"))
+    <|> parens termParser
+    <|> Var <$> (S8.toString <$> identifier)
+    <|> Lit <$> integer
 
 exprParser :: Parser Expr
 exprParser = makeExprParser termParser operators
@@ -68,18 +78,27 @@ exprParser = makeExprParser termParser operators
         ]
         ]
 
-termParser :: Parser Expr
-termParser = (Let <$> (symbol "(" *> rword "let" *> (S8.toString <$> identifier) <* symbol "=")
-            <*> (termParser <* symbol "in" ) <*> (termParser <* symbol ")"))
-    <|> parens termParser
-    <|> Var <$> (S8.toString <$> identifier)
-    <|> Lit <$> integer
-
-
 stmtParser :: Parser Statement
 stmtParser = Def <$> (rword "mut" *> (S8.toString <$> identifier) <* symbol "=") <*> exprParser
           <|> Assgmnt <$> ((S8.toString <$> identifier) <* symbol "=") <*> exprParser
 
+programParser :: Parser [Statement]
+programParser = sc *> many (stmtParser <* eol)
 
-test :: Either (ParseError (Token Str) Void) (Either ExpressionError Int)
-test = parse exprParser "hz" "x + 3 * (let x = 2 in x)" >>= \expr -> return $ runReaderT (eval expr) (Map.singleton "x" 1)
+useParser :: (MonadThrow m) => Parser a -> String -> Str -> m a
+useParser p name input = either throwM return (parse p name input)
+
+parseExprs :: (MonadThrow m) => Str -> m Expr
+parseExprs = useParser exprParser "Expr"
+
+parseStmt :: (MonadThrow m) => Str -> m Statement
+parseStmt = useParser stmtParser "Statement"
+
+parseAndEval :: (MonadThrow m) => Str -> m Int
+parseAndEval input = parseExprs input >>= flip doEval Map.empty
+
+parseAndCompute :: (MonadThrow m) => Str -> m ExprMap
+parseAndCompute input = parseStmt input >>= \stmt -> doCompute [stmt]
+
+runProgram :: (MonadThrow m) => Str -> m ExprMap
+runProgram input = useParser programParser "Program" input >>= doCompute

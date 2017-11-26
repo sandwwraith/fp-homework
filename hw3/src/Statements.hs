@@ -1,32 +1,55 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module Statements where
 
-import           Expressions         (Expr (..), ExprMap)
+import           Expressions         (Expr (..), ExprMap, doEval)
 
-import           Control.Monad.State (StateT, get, gets, lift, put)
+import           Control.Monad.Catch (Exception, MonadThrow, throwM)
+import           Control.Monad.State (MonadState, StateT, get, put, runStateT)
 import qualified Data.Map.Strict     as Map
+import           Data.Typeable       (Typeable)
 
+data StatementError
+    = Redefinition String
+    | Undefined String
+    deriving (Eq, Show, Typeable)
 
-data VariableError = Redefinition String | Undefined String deriving (Show)
+instance Exception StatementError
 
-type MutExprCtx = StateT ExprMap (Either VariableError)
+type MutExprCtx = StateT ExprMap (Either StatementError)
 
-def :: String -> Int -> MutExprCtx ()
+def :: (MonadState ExprMap m, MonadThrow m) => String -> Int -> m ()
 def name value = do
     m <- get
     case (Map.lookup name m) of
         Nothing -> put $ Map.insert name value m
-        Just _  -> lift $ Left (Redefinition name)
+        Just _  -> throwM (Redefinition name)
 
-update :: String -> Int -> MutExprCtx ()
+update :: (MonadState ExprMap m, MonadThrow m) => String -> Int -> m ()
 update name value = do
     m <- get
     case (Map.lookup name m) of
-        Nothing -> lift $ Left (Undefined name)
+        Nothing -> throwM (Undefined name)
         Just _  -> put $ Map.insert name value m
 
-getVar :: String -> MutExprCtx Int
-getVar name = gets (Map.lookup name) >>= lift . maybe (Left (Undefined name)) Right
+data Statement
+    = Def { varName    :: String
+          , expression :: Expr }
+    | Assgmnt { varName    :: String
+              , expression :: Expr }
+    deriving (Eq, Show)
 
-data Statement = Def String Expr | Assgmnt String Expr deriving (Show)
+compute :: (MonadState ExprMap m, MonadThrow m) => [Statement] -> m ExprMap
+compute [] = get
+compute (x:xs) = do
+    vars <- get
+    c <- doEval (expression x) vars
+    case x of
+        Def name _     -> def name c
+        Assgmnt name _ -> update name c
+    compute xs
 
-
+doCompute :: (MonadThrow m) => [Statement] -> m ExprMap
+doCompute stmt = fst <$> runStateT (compute stmt) Map.empty
