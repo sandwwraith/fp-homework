@@ -3,12 +3,12 @@
 module Parser where
 
 import           Expressions                (Expr (..), ExprMap, doEval)
-import           Statements                 (Statement (..), doCompute,
-                                             doCompute_)
+import           Statements                 (Statement (..), compute, interpret,
+                                             interpret_)
 
 import           Control.Applicative        (empty)
 import           Control.Monad.Catch        (Exception, MonadThrow, throwM)
-import           Control.Monad.State        (MonadIO)
+import           Control.Monad.State        (MonadIO, runStateT)
 import qualified Data.Map.Strict            as Map
 import           Data.Typeable              (Typeable)
 import           Data.Void                  (Void)
@@ -115,17 +115,14 @@ useParser p name input = either (throwM . ParsingException) return (parse p name
 parseExprs :: (MonadThrow m) => Str -> m Expr
 parseExprs = useParser exprParser ""
 
-parseStmt :: (MonadThrow m) => Str -> m Statement
-parseStmt = useParser stmtParser ""
-
 parseAndEval :: (MonadThrow m) => Str -> m Int
 parseAndEval input = parseExprs input >>= flip doEval Map.empty
 
 parseAndCompute :: (MonadIO m, MonadThrow m) => Str -> m ExprMap
-parseAndCompute input = parseStmt input >>= \stmt -> doCompute [stmt]
+parseAndCompute input = useParser stmtParser "" input >>= \stmt -> fst <$> runStateT (compute [stmt]) Map.empty
 
-runProgram :: (MonadIO m, MonadThrow m) => String -> Str -> m ExprMap
-runProgram name input = useParser programParser name input >>= doCompute
+runProgram :: String -> Str -> IO ExprMap
+runProgram name input = useParser programParser name input >>= interpret
 
-runProgram_ :: (MonadIO m, MonadThrow m) => String -> Str -> m ()
-runProgram_ name input = useParser programParser name input >>= doCompute_
+runProgram_ :: String -> Str -> IO ()
+runProgram_ name input = useParser programParser name input >>= interpret_

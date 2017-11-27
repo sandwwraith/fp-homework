@@ -1,6 +1,7 @@
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DuplicateRecordFields      #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 
 module Statements where
 
@@ -72,8 +73,15 @@ compute (x:xs) = do
             replicateM_ (to - c) (compute stmts)
     compute xs
 
-doCompute :: (MonadIO m, MonadThrow m) => [Statement] -> m ExprMap
-doCompute stmt = fst <$> runStateT (compute stmt) Map.empty
+newtype StatementCtx a = StatementCtx { runStatement :: StateT ExprMap (IO) a}
+            deriving (Functor, Applicative, Monad, MonadIO,
+                      MonadState ExprMap, MonadThrow)
 
-doCompute_ :: (MonadIO m, MonadThrow m) => [Statement] -> m ()
-doCompute_ = void . doCompute
+executeProgram :: StatementCtx a -> IO a
+executeProgram ctx = fst <$> runStateT (runStatement ctx) Map.empty
+
+interpret :: [Statement] -> IO ExprMap
+interpret = executeProgram . compute
+
+interpret_ :: [Statement] -> IO ()
+interpret_ = void . executeProgram . compute
