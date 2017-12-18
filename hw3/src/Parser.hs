@@ -7,7 +7,8 @@ import           Statements                 (Statement (..), compute, interpret,
                                              interpret_)
 
 import           Control.Applicative        (empty)
-import           Control.Monad.Catch        (Exception, MonadThrow, throwM)
+import           Control.Monad.Catch        (Exception, MonadCatch, MonadThrow,
+                                             throwM)
 import           Control.Monad.State        (MonadIO, runStateT)
 import qualified Data.Map.Strict            as Map
 import           Data.Typeable              (Typeable)
@@ -68,9 +69,9 @@ identifier = (lexeme . try) (p >>= check)
 
 
 termParser :: Parser Expr
-termParser = (Let <$> (symbol "(" *> rword "let" *> (S8.toString <$> identifier) <* symbol "=")
+termParser = parens exprParser
+    <|> (Let <$> (symbol "(" *> rword "let" *> (S8.toString <$> identifier) <* symbol "=")
             <*> (exprParser <* symbol "in" ) <*> (exprParser <* symbol ")"))
-    <|> parens exprParser
     <|> Var <$> (S8.toString <$> identifier)
     <|> Lit <$> integer
 
@@ -118,7 +119,7 @@ parseExprs = useParser exprParser ""
 parseAndEval :: (MonadThrow m) => Str -> m Int
 parseAndEval input = parseExprs input >>= flip doEval Map.empty
 
-parseAndCompute :: (MonadIO m, MonadThrow m) => Str -> m ExprMap
+parseAndCompute :: (MonadIO m, MonadCatch m) => Str -> m ExprMap
 parseAndCompute input = useParser stmtParser "" input >>= \stmt -> fst <$> runStateT (compute [stmt]) Map.empty
 
 runProgram :: String -> Str -> IO ExprMap

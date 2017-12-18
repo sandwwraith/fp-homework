@@ -39,8 +39,6 @@ instance Exception ExpressionError
 
 type ExprMap = Map.Map String Int
 
-type ExprCtx = ReaderT ExprMap (Either ExpressionError) Int
-
 eval :: (MonadReader ExprMap m, MonadThrow m) => Expr -> m Int
 eval (Lit n) = return n
 eval (Var x) = asks (Map.lookup x) >>= maybe (throwM (MissingVariable x)) return
