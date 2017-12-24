@@ -18,16 +18,17 @@ tested-with:         GHC == 8.0.1
 
 library
   hs-source-dirs:      src
-  exposed-modules:     BlockOne, BlockOneSub, BaseLens
+  exposed-modules:     BlockOne, BlockOneSub, BaseLens, FSLens
   ghc-options:         -Wall
-  build-depends:       base >= 4.9 && < 5, containers, template-haskell, text
+  build-depends:       base >= 4.9 && < 5, containers, template-haskell, text,
+                       lens, directory-tree, filepath
   default-language:    Haskell2010
 
 executable hw4
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base, hw4
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base, hw4, mtl, lens
   default-language:    Haskell2010
 
 test-suite spec
