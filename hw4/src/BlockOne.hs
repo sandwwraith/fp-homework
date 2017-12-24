@@ -31,19 +31,5 @@ class ShowText a where
 
 genShowText :: Name -> Q [Dec]
 genShowText name = do
-    TyConI (DataD _ _ _ _ [RecC _ fields] _) <- reify name
-
-    let names = map (\(n,_,_) -> n) fields
-
-    let showField :: Name -> Q Exp
-        showField name' = [|\x -> T.pack $ s ++ " = " ++ show ($(varE name') x)|]
-          where s = nameBase name
-
-    let showFields :: Q Exp
-        showFields = listE $ map showField names
-
-    let className = nameBase name
-
     [d|instance ShowText $(conT name) where
-            showText x = className `T.append` " {" `T.append` T.intercalate ", "
-                    (map ($ x) $showFields) `T.append` "}" |]
+        showText x = T.pack (show x) |]
