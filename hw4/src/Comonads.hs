@@ -3,10 +3,10 @@
 
 module Comonads where
 
-import           Control.Comonad        (Comonad (..), extract)
+import           Control.Comonad        (Comonad, duplicate, extend, extract)
 
 import           Control.Comonad.Traced (Traced, runTraced, traced)
-import           Data.Text
+import           Data.Text              (Text)
 
 data Renew s e a = Renew (e -> a) s
 
@@ -56,3 +56,12 @@ benchs b = runTraced b (ProjectSettings True False False)
 
 buildProject :: Text -> ProjectBuilder
 buildProject name = traced (\(ProjectSettings b g t) -> Project name b g t)
+
+data Tree a = Node a [Tree a]
+
+instance Functor Tree where
+    fmap f (Node x xs) = Node (f x) (map (fmap f) xs)
+
+instance Comonad Tree where
+    extract (Node x _) = x
+    duplicate t@(Node _ xs) = Node t (map duplicate xs)
