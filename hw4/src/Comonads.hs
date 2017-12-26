@@ -20,7 +20,7 @@ instance MonoidAction s e => Comonad (Renew s e) where
     -- extract :: Renew s e a -> a
     extract (Renew g _) = g mempty
     -- duplicate :: Renew s e a -> Renew s e (Renew s e a)
-    duplicate (Renew g s) = Renew (\x -> Renew g (act s x)) s
+    duplicate (Renew g s) = Renew (\x -> Renew (\y -> g (x `mappend` y)) (act s x)) s
     -- extend :: (Renew s e a -> b) -> Renew s e a -> Renew s e b
     extend f = fmap f . duplicate
 

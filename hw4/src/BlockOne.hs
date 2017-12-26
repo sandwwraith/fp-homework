@@ -26,7 +26,7 @@ choseByIndices n ind = do
             Nothing -> WildP
             Just _  -> VarP $ locals !! i
 
-class ShowText a where
+class (Show a) => ShowText a where
     showText :: a -> T.Text
 
 genShowText :: Name -> Q [Dec]
